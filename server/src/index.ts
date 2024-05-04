@@ -3,6 +3,7 @@ import bodyParser from "body-parser";
 import cors from "cors";
 import dotenv from "dotenv";
 import mongooseConnection from "./db";
+import DnsRouter from "./routes/index";
 const app = express();
 
 dotenv.config();
@@ -14,6 +15,8 @@ app.use(
     methods: "*",
   })
 );
+
+app.use("/api/v1", DnsRouter);
 
 mongooseConnection();
 const port = process.env.PORT || 4000;
