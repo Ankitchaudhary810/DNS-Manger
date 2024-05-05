@@ -8,4 +8,4 @@ export const aws_access_key = process.env.aws_access_key;
 
 export const aws_secret_key = process.env.aws_secret_key;
 
-export const region = "ap-south-1";
+export const region = process.env.region;
