@@ -1,7 +1,7 @@
 import express from "express";
 const router = express.Router();
 
-import { createDomain, deleteDomain, listDomain } from "../controllers/dns";
+import { createDomain, deleteDomain, listDomain } from "../controllers/domain";
 
 router.post("/domain/create", createDomain);
 router.get("/domain/list", listDomain);
