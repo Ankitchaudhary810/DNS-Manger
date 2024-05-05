@@ -4,8 +4,9 @@ import cors from "cors";
 import dotenv from "dotenv";
 import mongooseConnection from "./db";
 import DnsRouter from "./routes/index";
-const app = express();
+import { PORT } from "./config";
 
+const app = express();
 dotenv.config();
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -19,7 +20,7 @@ app.use(
 app.use("/api/v1", DnsRouter);
 
 mongooseConnection();
-const port = process.env.PORT || 4000;
+const port = PORT || 4000;
 app.listen(port, () => {
-  console.log("server is running..");
+  console.log("server is running at ", port);
 });
