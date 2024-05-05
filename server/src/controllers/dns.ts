@@ -64,3 +64,18 @@ export const isDomainExist = async () => {
   const { HostedZones } = await aws_route53_client.send(command);
   return HostedZones;
 };
+
+export const listDomain = async (req: Request, res: Response) => {
+  if (req.method == "GET") {
+    try {
+      const command = new ListHostedZonesCommand({});
+      const { HostedZones } = await aws_route53_client.send(command);
+      res.status(200).json(HostedZones);
+    } catch (error) {
+      console.error("Error while listing hosted zones ", error);
+      throw error;
+    }
+  } else {
+    res.status(405).json({ error: `${req.method} Method not allowed` });
+  }
+};
