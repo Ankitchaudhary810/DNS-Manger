@@ -1,5 +1,6 @@
 import {
   CreateHostedZoneCommand,
+  DeleteHostedZoneCommand,
   ListHostedZonesCommand,
 } from "@aws-sdk/client-route-53";
 import { Request, Response, NextFunction, response } from "express";
@@ -74,6 +75,46 @@ export const listDomain = async (req: Request, res: Response) => {
     } catch (error) {
       console.error("Error while listing hosted zones ", error);
       throw error;
+    }
+  } else {
+    res.status(405).json({ error: `${req.method} Method not allowed` });
+  }
+};
+
+export const deleteDomain = async (req: Request, res: Response) => {
+  if (req.method == "POST") {
+    try {
+      const domainNams = req.body;
+      const domainAlreadyExits = await isDomainExist();
+      const dataLog = [];
+      for (const domain in domainNams) {
+        // TODO: NEED TO FIX THE TYPE
+        // @ts-ignore
+        const { Name } = domainNams[domain];
+        const fullyQualifiedName = Name.endsWith(".") ? Name : `${Name}.`;
+
+        const domainExists = domainAlreadyExits?.find(
+          (zone) =>
+            zone &&
+            zone.Name &&
+            (zone.Name.toLowerCase() === (Name + ".").toLowerCase() ||
+              zone.Name.toLowerCase() === fullyQualifiedName.toLowerCase())
+        );
+        if (!domainExists) {
+          console.log(`Hosted zone '${fullyQualifiedName}' does not exists.`);
+          continue;
+        }
+        const params = {
+          Id: domainExists.Id,
+        };
+        const command = new DeleteHostedZoneCommand(params);
+        await aws_route53_client.send(command);
+        dataLog.push({ domain: Name, status: "Deleted" });
+      }
+      res.status(200).json(dataLog);
+    } catch (error) {
+      console.log(error);
+      res.status(500).json(error);
     }
   } else {
     res.status(405).json({ error: `${req.method} Method not allowed` });
