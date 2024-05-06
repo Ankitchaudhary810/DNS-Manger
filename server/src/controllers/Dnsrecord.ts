@@ -148,6 +148,57 @@ export const DeleteDnsRecord = async (req: Request, res: Response) => {
   }
 };
 
+export const createMultipleDnsRecord = async (req: Request, res: Response) => {
+  if (req.method === "POST") {
+    try {
+      const dnsRecords = req.body;
+      const { HostedZoneId } = req.query;
+
+      if (typeof HostedZoneId !== "string") {
+        return res
+          .status(400)
+          .json({ error: "HostedZoneId must be a string." });
+      }
+
+      const changeSet = {
+        Changes: [
+          {
+            Action: "CREATE",
+            ResourceRecordSet: {
+              Name: dnsRecords.Name,
+              Type: dnsRecords.Type,
+              TTL: dnsRecords.TTL || default_TTL,
+              ResourceRecords: dnsRecords.ResourceRecords.map((value: any) => ({
+                Value: value.Value,
+              })),
+            },
+          },
+        ],
+      };
+
+      const params = {
+        HostedZoneId,
+        ChangeBatch: changeSet,
+      };
+      //@ts-ignore
+      const command = new ChangeResourceRecordSetsCommand(params);
+      const response = await aws_route53_client.send(command);
+
+      res.status(200).json({
+        message: "multiple DNS Record created successfully",
+        data: response,
+      });
+    } catch (error) {
+      console.error("Error while creating multiple DNS records: ", error);
+      res
+        .status(500)
+        .json({ error: "Error while creating multiple DNS records" });
+    }
+  } else {
+    res.status(405).json({ error: `${req.method} Method not allowed` });
+  }
+};
+
 export const isExistingDnsRecords = async (
   name: string,
   type: string,
