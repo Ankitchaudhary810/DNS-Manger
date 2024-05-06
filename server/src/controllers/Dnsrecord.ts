@@ -85,40 +85,63 @@ export const createSingleDnsRecord = async (req: Request, res: Response) => {
 export const DeleteDnsRecord = async (req: Request, res: Response) => {
   if (req.method === "POST") {
     try {
-      const { Name, Type, TTL, resourceRecords, HostedZoneId } = req.body;
-      const params: ChangeResourceRecordSetsCommandInput = {
-        HostedZoneId,
-        ChangeBatch: {
-          Changes: [
-            {
-              Action: "CREATE" as ChangeAction,
-              ResourceRecordSet: {
-                Name,
-                Type,
-                TTL,
-                ResourceRecords: [
+      const dnsRecords = req.body;
+      const { HostedZoneId } = req.query;
+
+      if (!HostedZoneId) {
+        return res.status(400).json({ error: "HostedZoneId is required" });
+      }
+
+      let anyDeleted = false;
+
+      for (const dnsRecord of dnsRecords) {
+        const existingDnsRecords = await isExistingDnsRecords(
+          dnsRecord.Name,
+          dnsRecord.Type,
+          HostedZoneId as string
+        );
+
+        console.log({ existingDnsRecords });
+
+        if (existingDnsRecords && existingDnsRecords.length > 0) {
+          for (const record of existingDnsRecords) {
+            if (record.Type === "NS" || record.Type === "SOA") {
+              console.log(
+                "Attempted to delete NS record at the apex of the domain, which is not allowed."
+              );
+              continue;
+            }
+            const deleteCommand = new ChangeResourceRecordSetsCommand({
+              HostedZoneId: HostedZoneId as string,
+              ChangeBatch: {
+                Changes: [
                   {
-                    Value: resourceRecords[0].Value,
+                    Action: "DELETE",
+                    ResourceRecordSet: record,
                   },
                 ],
               },
-            },
-          ],
-        },
-      };
+            });
 
-      const command = new ChangeResourceRecordSetsCommand(params);
-      const response = await aws_route53_client.send(command);
+            await aws_route53_client.send(deleteCommand);
+            console.log("Record deleted: ", dnsRecord);
+            anyDeleted = true;
+          }
+        } else {
+          console.log("No matching records found to delete for: ", dnsRecord);
+        }
+      }
 
-      res.status(200).json({
-        message: "DNS Record created successfully",
-        data: response,
-      });
+      if (anyDeleted) {
+        res.status(200).json({ msg: "DNS records deleted successfully." });
+      } else {
+        res
+          .status(404)
+          .json({ msg: "No matching DNS records found for deletion." });
+      }
     } catch (error) {
-      console.error("Error while creating single DNS records: ", error);
-      res
-        .status(500)
-        .json({ error: "Error while creating single DNS records" });
+      console.error("Error while deleting DNS records: ", error);
+      res.status(500).json({ error: "Error while deleting DNS records" });
     }
   } else {
     res.status(405).json({ error: `${req.method} Method not allowed` });
@@ -130,19 +153,20 @@ export const isExistingDnsRecords = async (
   type: string,
   HostedZoneId: string
 ) => {
-  const params = {
-    HostedZoneId,
-    MaxItems: 1,
-    StartRecordName: name,
-    StartRecordType: type as RRType,
-  };
+  const formattedName = name.endsWith(".") ? name : `${name}.`;
 
-  const command = new ListResourceRecordSetsCommand(params);
+  const command = new ListResourceRecordSetsCommand({
+    HostedZoneId,
+    MaxItems: 100,
+    StartRecordName: formattedName,
+    StartRecordType: type as RRType,
+  });
+
   const { ResourceRecordSets } = await aws_route53_client.send(command);
 
-  const dnsRecords = ResourceRecordSets?.filter(
-    (record) => record.Name === name && record.Type === type
+  return ResourceRecordSets?.filter(
+    (record) =>
+      record?.Name?.toLowerCase() === formattedName.toLowerCase() &&
+      record.Type === type
   );
-
-  return dnsRecords;
 };
