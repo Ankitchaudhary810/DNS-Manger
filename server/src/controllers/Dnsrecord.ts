@@ -199,6 +199,74 @@ export const createMultipleDnsRecord = async (req: Request, res: Response) => {
   }
 };
 
+export const updateDnsRecords = async (req: Request, res: Response) => {
+  if (req.method === "POST") {
+    try {
+      const dnsRecords = req.body;
+      const { HostedZoneId } = req.query;
+
+      if (typeof HostedZoneId !== "string") {
+        return res
+          .status(400)
+          .json({ error: "HostedZoneId must be a string." });
+      }
+
+      for (const record of dnsRecords) {
+        const existingRecords = await isExistingDnsRecords(
+          record.Name,
+          record.Type,
+          HostedZoneId
+        );
+
+        console.log({ existingRecords });
+
+        if (existingRecords && existingRecords.length > 0) {
+          const ChangeBatch: ChangeResourceRecordSetsCommandInput = {
+            HostedZoneId,
+            ChangeBatch: {
+              Changes: [
+                {
+                  Action: "UPSERT" as ChangeAction,
+                  ResourceRecordSet: {
+                    Name: record.Name,
+                    Type: record.Type,
+                    TTL: record.TTL || default_TTL,
+                    ResourceRecords: record.ResourceRecords.map(
+                      (value: any) => ({
+                        Value: value.Value,
+                      })
+                    ),
+                  },
+                },
+              ],
+            },
+          };
+
+          const params = {
+            HostedZoneId,
+            ChangeBatch: ChangeBatch,
+          };
+          // @ts-ignore
+          const command = new ChangeResourceRecordSetsCommand(params);
+          await aws_route53_client.send(command);
+
+          console.log("Record updated successfully:", record);
+        } else {
+          console.log("No matching records found to update for:", record);
+        }
+      }
+      res
+        .status(200)
+        .json({ message: "DNS Record updates attempted successfully." });
+    } catch (error) {
+      console.error("Error while updating DNS records:", error);
+      res.status(500).json({ error: "Error while updating DNS records" });
+    }
+  } else {
+    res.status(405).json({ error: `${req.method} Method not allowed` });
+  }
+};
+
 export const isExistingDnsRecords = async (
   name: string,
   type: string,
