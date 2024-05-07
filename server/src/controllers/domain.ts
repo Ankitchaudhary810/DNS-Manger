@@ -10,6 +10,7 @@ export const createDomain = async (req: Request, res: Response) => {
   if (req.method == "POST") {
     try {
       const domainNams = req.body;
+      console.log(domainNams);
       const domainAlreadyExits = await isDomainExist();
       const dataLog = [];
       for (const domain in domainNams) {
@@ -35,9 +36,9 @@ export const createDomain = async (req: Request, res: Response) => {
 
         const params = {
           Name: fullyQualifiedName,
-          CallerReference: `${Date.now()}`, // need to be in string format
+          CallerReference: `${Date.now()}`,
           HostedZoneConfig: {
-            Comment: " ",
+            Comment: " ", // don't know what is thing
             PrivateZone: false,
           },
         };
