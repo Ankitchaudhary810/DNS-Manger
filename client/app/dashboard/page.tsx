@@ -1,7 +1,11 @@
+"use client";
 import { Input } from "@/components/ui/input";
+import { useListDomain } from "@/hooks/useListDomain";
 import React from "react";
 
 const Dashboard = () => {
+  const { domain, isLoading } = useListDomain();
+  console.log(domain);
   return (
     <div className="grid grid-cols-12 h-full w-full">
       {/* lef side */}
@@ -15,7 +19,7 @@ const Dashboard = () => {
               placeholder="Enter domain Name"
               className="mt-1 w-full outline-none bg-teal-50 p-2 rounded-lg "
             />
-            <button className="bg-teal-400 p-2 mt-1 rounded-sm text-white">
+            <button className="bg-[#7D96F0] p-2 mt-1 rounded-lg text-white">
               Create
             </button>
           </div>

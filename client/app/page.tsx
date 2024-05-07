@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 export default function Home() {
   const router = useRouter();
+
   return (
     <>
       <div className="px-4 md:px-8 lg:px-12 xl:px-16 flex flex-col lg:flex-row justify-between gap-8">
