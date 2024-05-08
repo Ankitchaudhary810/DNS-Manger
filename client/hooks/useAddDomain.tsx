@@ -1,10 +1,16 @@
 "use client";
 
-import { QueryClient, useMutation, useQuery } from "@tanstack/react-query";
+import {
+  QueryClient,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { Domain } from "domain";
 import toast from "react-hot-toast";
 
 export const useAddDomain = () => {
+  const queryClient = useQueryClient();
   const mutation = useMutation({
     mutationKey: ["ADD_DOMAIN"],
     mutationFn: async (domain) => {
@@ -31,6 +37,7 @@ export const useAddDomain = () => {
     },
     onSuccess: async () => {
       toast.success("Done", { id: "1" });
+      queryClient.invalidateQueries({ queryKey: ["list-domain"] });
     },
     onError: async () => {
       toast.error("Fail to update", { id: "1" });
