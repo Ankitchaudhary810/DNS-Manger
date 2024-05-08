@@ -1,5 +1,6 @@
 "use client";
 import DomainCard from "@/components/DomainCard";
+import SkeletonDomin from "@/components/SkeletonDomin";
 import { useAddDomain } from "@/hooks/useAddDomain";
 import { useListDomain } from "@/hooks/useListDomain";
 import React, { useState } from "react";
@@ -62,15 +63,19 @@ const Dashboard = () => {
         <div className="col-span-1 md:col-span-9 h-full w-full p-2">
           <div className="bg-slate-100 w-full text-sm h-full p-2 rounded-xl font-medium border border-3 border-zinc-600 ">
             <h2 className="text-lg">Domains List</h2>
-            {domain?.map((dom: any, i: number) => (
-              <div className="flex flex-row gap-3 p-1 flex-wrap">
-                <DomainCard
-                  Name={dom.Name}
-                  key={i}
-                  recordLength={dom.ResourceRecordSetCount}
-                />
-              </div>
-            ))}
+            <div className="flex flex-row gap-3 p-1 flex-wrap">
+              {isLoading
+                ? Array.from({ length: 7 }, (_, index) => (
+                    <SkeletonDomin key={index} />
+                  ))
+                : domain?.map((dom: any) => (
+                    <DomainCard
+                      Name={dom.Name}
+                      key={dom.id}
+                      recordLength={dom.ResourceRecordSetCount}
+                    />
+                  ))}
+            </div>
           </div>
         </div>
       </div>
