@@ -3,13 +3,16 @@ import DomainCard from "@/components/DomainCard";
 import SkeletonDomin from "@/components/SkeletonDomin";
 import { useAddDomain } from "@/hooks/useAddDomain";
 import { useListDomain } from "@/hooks/useListDomain";
+import { useQueryClient } from "@tanstack/react-query";
 import React, { useState } from "react";
+import toast from "react-hot-toast";
 
 export interface Domain {
   Name: string;
 }
 
 const Dashboard = () => {
+  const queryClient = useQueryClient();
   const { isLoading, domain } = useListDomain();
   const [currentDomain, setCurrentDomain] = useState("");
   const [domains, setDomains] = useState<Domain[]>([]);
@@ -31,6 +34,31 @@ const Dashboard = () => {
           setCurrentDomain("");
         },
       });
+    }
+  };
+
+  const handleDeleteDomain = async (domainName: string) => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/domain/delete`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify([{ Name: domainName }]),
+        }
+      );
+
+      if (response.ok) {
+        toast.success("Domain Deleted");
+        queryClient.invalidateQueries({ queryKey: ["list-domain"] });
+      } else {
+        toast.error(await response.text());
+        console.error("Failed to delete the domain:", await response.text());
+      }
+    } catch (error) {
+      console.error("Network error when trying to delete domain:", error);
     }
   };
 
@@ -72,7 +100,9 @@ const Dashboard = () => {
                     <DomainCard
                       Name={dom.Name}
                       key={dom.id}
+                      hostedId={dom.Id}
                       recordLength={dom.ResourceRecordSetCount}
+                      onDelete={() => handleDeleteDomain(dom.Name)}
                     />
                   ))}
             </div>
